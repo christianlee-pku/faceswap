@@ -52,10 +52,9 @@ Manual equivalents remain available via `interfaces.cli`.
 
 ## Training & Evaluation
 
-```bash
-python -m interfaces.cli train --config configs/face_swap/baseline.yaml --work-dir work_dirs/<exp>
-python -m interfaces.cli eval  --config configs/face_swap/eval.yaml     --work-dir work_dirs/<exp>
-```
+Use scripts:
+- `bash scripts/train.sh` (baseline config)
+- `bash scripts/eval.sh` (eval config)
 - Metrics/visuals persisted to work_dir. ArcFace/LPIPS/SSIM/PSNR computed when deps available.
 
 ## Inference
