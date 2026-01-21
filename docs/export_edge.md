@@ -1,47 +1,75 @@
-# Export & Edge Deployment
+# ⚡ Export & Edge Deployment
 
-## Goals
+This guide covers exporting trained models to **ONNX** and **TensorRT** for high-performance inference on edge devices (e.g., NVIDIA Jetson).
 
-- Produce ONNX and TensorRT artifacts for Jetson-class targets (≤1.5 GB GPU, FP16 preferred).
-- Validate ONNX Runtime inference.
-- Benchmark latency/FPS at 720p with recorded results in `work_dirs/exports/<exp>/`.
+## 🎯 Goals
 
-## Prerequisites
+- **Portability**: Run models without PyTorch dependencies (via ONNX Runtime).
+- **Performance**: Optimize for low latency and high throughput (via TensorRT).
+- **Benchmarking**: Accurately measure FPS and latency on target hardware.
 
-- Install torch (CPU ok for export), onnxruntime, and TensorRT tooling (`trtexec`) on the export host.
-- Checkpoint from training: `work_dirs/.../checkpoints/best.pth`.
+## 🛠️ Prerequisites
 
-## ONNX Export
+- **Host**: PyTorch (CPU sufficient for export).
+- **Target**: `trtexec` (part of TensorRT), `onnxruntime`.
 
-```bash
-bash scripts/export.sh                # uses configs/face_swap/export.yaml
-```
-- Output: `model.onnx` in export_dir (fails if torch/onnx missing or checkpoint mismatch).
+## 📦 ONNX Export
 
-## TensorRT Conversion
+Export a trained checkpoint to ONNX format.
 
-- Conversion invoked via `trtexec` (config: configs/face_swap/trt.yaml, script: bash scripts/trt.sh).
-- Output: `model.trt` (fails if trtexec missing).
+- **Class**: `src.exporters.onnx_exporter.ONNXExporter`
+- **Script**: `bash scripts/export.sh`
+- **Config**: `configs/face_swap/export.yaml`
 
-## ONNX Runtime Validation
+**Process:**
+1. Loads the checkpoint (e.g., `best.pth`).
+2. Traces the model using `torch.onnx.export`.
+3. Verifies the output graph structure.
+4. Output: `model.onnx` in the specified export directory.
 
-- `exporters/onnxruntime_runner.py` loads the ONNX and runs inference if onnxruntime is installed.
-- Provide an input dict with key `input` matching export shapes.
+## 🚀 TensorRT Conversion
 
-## Edge Benchmark
+Convert the ONNX model to a TensorRT engine (`.trt`) for maximum performance on NVIDIA GPUs.
 
-```bash
-bash scripts/benchmark_edge.sh    # uses configs/face_swap/export.yaml by default
-```
-- Records latency/FPS to `benchmark.json`. Current latency/FPS uses perf hooks; replace with real device measurements.
+- **Class**: `src.exporters.tensorrt_exporter.TensorRTExporter`
+- **Script**: `bash scripts/trt.sh`
+- **Config**: `configs/face_swap/trt.yaml`
 
-## Packaging
+**Process:**
+1. Validates `trtexec` availability in `$PATH`.
+2. Constructs the build command (precision, workspace size).
+3. Compiles the ONNX graph into a hardware-specific engine.
+4. Output: `model.trt`
 
-- Include: `model.onnx`, `model.trt` (if built), `benchmark.json`, sample commands.
-- Document device assumptions (Jetson Orin/Xavier, FP16).
+**Note**: TensorRT engines are **hardware-specific**. You must build them on the target device (e.g., on the Jetson Nano itself).
 
-## Hardening Notes
+## ⏱️ Edge Benchmark
 
-- Replace placeholder metrics with real device benchmarks.
-- Validate ONNX/engine outputs against reference frames.
-- Add quantization/int8 if needed (not implemented).***
+Measure inference performance (Latency & FPS).
+
+- **Script**: `bash scripts/benchmark_edge.sh`
+- **Backends**: 
+  - `pytorch` (native)
+  - `onnxruntime` (CPU/CUDA)
+  - `tensorrt` (if engine exists)
+
+**Metrics:**
+- `Latency (ms)`: End-to-end time per batch.
+- `FPS`: Frames per second at configured resolution (default 720p).
+- **Output**: `benchmark.json`
+
+## 🧪 Verification
+
+### ONNX Runtime
+The `src.exporters.onnxruntime_runner.Runner` utility validates the exported ONNX model by running a sample inference pass and comparing outputs against the PyTorch baseline (if available).
+
+### Packaging for Deployment
+When deploying to edge, package the following:
+1. `model.onnx` (or `model.trt`)
+2. `benchmark.json` (performance baseline)
+3. `sample_input.jpg` (for sanity checks)
+
+## ⚠️ Known Issues
+
+- **Opset Version**: Ensure your ONNX Opset version matches the target runtime support (default: 11).
+- **FP16**: Use FP16 mode in TensorRT for significant speedups on Jetson Orin/Xavier.

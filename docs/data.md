@@ -1,34 +1,71 @@
-# Data & Manifests
+# 💾 Data & Manifests
 
-## Sources
+This guide details how the system handles the **LFW (Labeled Faces in the Wild)** dataset, from downloading to alignment and manifestation.
 
-- LFW raw images in `data/lfw/raw/`
+## 🗂️ Directory Structure
 
-## Download, Alignment & Manifests
+The system expects the following data layout:
 
-- Expected raw layout: `data/lfw/raw/<person>/<image>.jpg` plus `pairs.txt` and `pairs_01~pairs_10.txt` (pairs are ingested into the manifest).
-- Kaggle download: use Kaggle API to fetch LFW into `data/lfw/raw/`; handle auth/token. Command (config-driven):
-  ```bash
-  bash scripts/prepare_data.sh
-  ```
-- Structure is preserved: aligned outputs go to `data/lfw/processed/<person>/<image>.jpg`.
-- Detection/alignment: MTCNN (RetinaFace disabled); crops at MTCNN default size (160); if detection fails, the raw image is copied to processed; checksums captured in manifest.
-- Progress logging: data prep logs INFO every ~200 images and reports total pairs/items when manifest is written.
-- Manifest (`data/lfw/manifest.json`) includes version, items (id, path, checksum), splits (80/10/10), checksums, pairs metadata, and meta.
-- Update utility: `src/data/update_dataset.py` to bump manifest version/changelog.
+```text
+data/
+└── lfw/
+    ├── raw/              # Original downloads
+    │   └── <person>/
+    │       └── <image>.jpg
+    ├── processed/        # Aligned & cropped images
+    │   └── <person>/
+    │       └── <image>.jpg
+    └── manifest.json     # Dataset metadata and splits
+```
 
-## Splits
+## 🔄 Data Pipeline
 
-- Recommended: train/val/test = 80/10/10; keep consistent across runs.
+### 1. Download & Ingestion
+The pipeline uses the Kaggle API to fetch the LFW dataset.
+- **Input**: `data/lfw/raw/` (plus `pairs.txt` files).
+- **Command**: `bash scripts/prepare_data.sh`
 
-## Augmentations
+### 2. Alignment (Preprocessing)
+- **Method**: MTCNN (Multi-task Cascaded Convolutional Networks).
+- **Crop Size**: 160x160 pixels (default).
+- **Fallback**: If no face is detected, the raw image is resized and copied to `processed/` to maintain dataset integrity.
+- **Logging**: Progress is logged every ~200 images.
 
-- Light: color jitter, flip, mild blur; deterministic seeds.
+### 3. Manifest Generation
+A `manifest.json` file is generated to track dataset state.
+- **Content**:
+  - `version`: Dataset version string.
+  - `items`: List of images with ID, path, and checksum.
+  - `splits`: Recommended train/val/test splits (80/10/10).
+  - `checksums`: For data integrity verification.
 
-## Validation
+## 🧪 Validation
 
-- Run validation:
-  ```bash
-  bash scripts/validate_manifest.sh
-  ```
-- Ensure aligned images exist at `data/lfw/processed/` paths referenced in manifest; fix or regenerate if missing.
+Always validate your dataset after preparation.
+
+```bash
+bash scripts/validate_manifest.sh
+```
+
+**Checks Performed:**
+- Existence of all files referenced in the manifest.
+- Checksum verification (if enabled).
+- Split consistency.
+
+## 🧩 Splits
+
+The default split strategy is consistent across runs to ensure fair comparisons:
+- **Train**: 80%
+- **Validation**: 10%
+- **Test**: 10%
+
+## 🎨 Augmentations
+
+Augmentations are registered components applied dynamically during training.
+
+- **Class**: `registry.augmentations.LightAugmentation`
+- **Features**: 
+  - Color Jitter (brightness/contrast)
+  - Horizontal Flip
+  - Gaussian Blur (mild)
+- **Determinism**: Random seeds are fixed during training for reproducibility.

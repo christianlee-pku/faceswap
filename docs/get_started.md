@@ -1,51 +1,101 @@
-# Getting Started
+# 🚀 Getting Started
 
-## Environment
+This guide will help you set up the **Face Swap System**, prepare your environment, and run your first experiment.
 
-- Conda env: `face_swap`
-- Python 3.11 with pinned deps (torch CPU, torchmetrics, lpips, facenet-pytorch, pyyaml, fastapi, uvicorn, onnx).
-- Install:
-  ```bash
-  conda create -n face_swap python=3.11 -y
-  conda activate face_swap
-  python -m pip install -r requirements.txt
-  # For CPU: python -m pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
-  ```
+## 🛠️ Prerequisites
 
-## Dataset (LFW)
+- **OS**: Linux (Ubuntu 20.04+), macOS (13+), or Windows (WSL2 recommended)
+- **Python**: 3.11+
+- **Conda**: Miniconda or Anaconda recommended
 
-1) Download/prepare via config:
+## 📦 Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/your-org/face_swap.git
+cd face_swap
+```
+
+### 2. Create Environment
+
+We recommend using Conda to manage dependencies.
+
+```bash
+conda create -n face_swap python=3.11 -y
+conda activate face_swap
+```
+
+### 3. Install Dependencies
+
+Install the core requirements. For specific hardware (CPU vs GPU), see below.
+
+```bash
+pip install -r requirements.txt
+```
+
+**For CPU-only (macOS/Linux):**
+```bash
+# Optimized torch wheels for CPU
+python -m pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
+```
+
+## 💾 Data Preparation (LFW)
+
+The system is designed to work with the **Labeled Faces in the Wild (LFW)** dataset.
+
+1. **Download & Align**:
+   Use the provided script to download the dataset (via Kaggle) and perform face alignment.
+   
+   *Note: Requires `KAGGLE_USERNAME` and `KAGGLE_KEY` environment variables.*
+
    ```bash
-   # Requires Kaggle CLI with KAGGLE_USERNAME/KAGGLE_KEY set
    bash scripts/prepare_data.sh
    ```
-   - Ingests `pairs.txt` and `pairs_01~pairs_10.txt`, preserves folder structure, uses MTCNN alignment; if no face is detected, the raw image is copied into `data/lfw/processed`.
-2) Validate manifest/checksums:
+
+   **What this does:**
+   - Downloads LFW raw images to `data/lfw/raw/`.
+   - Aligns faces using MTCNN to `data/lfw/processed/`.
+   - Generates a manifest file `data/lfw/manifest.json`.
+
+2. **Validate**:
+   Ensure the data is correctly processed.
+
    ```bash
    bash scripts/validate_manifest.sh
    ```
 
-## Train & Eval
+## 🏃‍♂️ Running Your First Experiment
 
-- Train: `bash scripts/train.sh` (baseline config)
-- Eval: `bash scripts/eval.sh` (eval config)
-- Outputs: `config.yaml`, `config.py`, logs, `metrics.train.json`, checkpoints.
+### 1. Training
 
-## Inference (Batch)
+Train the baseline model using the default configuration.
 
-- `bash scripts/infer.sh` (uses `configs/face_swap/infer.yaml` for sources/targets/output_dir/checkpoint)
+```bash
+bash scripts/train.sh
+```
+*Config: `configs/face_swap/baseline.yaml`*
 
-## Export & Edge Benchmark
+### 2. Evaluation
 
-- ONNX: `bash scripts/export.sh` (uses `configs/face_swap/export.yaml`)
-- TensorRT: `bash scripts/trt.sh` (uses `configs/face_swap/trt.yaml`; requires trtexec)
-- Benchmark: `bash scripts/benchmark_edge.sh` (uses `configs/face_swap/export.yaml`)
+Evaluate the trained model's performance.
 
-## REST (Optional)
+```bash
+bash scripts/eval.sh
+```
+*Config: `configs/face_swap/eval.yaml`*
 
-- Routes: `/face-swap/batch`, `/face-swap/train`, `/face-swap/eval`, `/face-swap/stream`, `/reports/{run_id}` (placeholder status; see `src/interfaces/rest.py`).
+### 3. Inference
 
-## Notes
+Run face swapping on a batch of images.
 
-- Some components still rely on optional deps; install torch/torchvision/torchmetrics/lpips/facenet-pytorch for full metrics.
-- Streaming and ONNX/TRT behavior depend on runtime availability (trtexec, onnxruntime).
+```bash
+bash scripts/infer.sh
+```
+*Config: `configs/face_swap/infer.yaml`*
+
+## 🚢 Next Steps
+
+- **[Configuration Guide](configs.md)**: Learn how to customize experiments.
+- **[Edge Deployment](export_edge.md)**: Export models to ONNX/TensorRT.
+- **[Streaming](streaming.md)**: Set up real-time inference.

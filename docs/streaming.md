@@ -1,34 +1,50 @@
-# Streaming & REST
+# 📡 Streaming & REST API
 
-## Endpoints
+The system provides real-time capabilities via a streaming pipeline and a REST API.
 
-- `/face-swap/stream`: accepts frames list, config, optional work_dir; returns latency/FPS and processed frame count.
-- `/reports/{run_id}`: reads metrics/graphs from work_dir and returns JSON links.
-- Other routes: `/face-swap/batch`, `/face-swap/train`, `/face-swap/eval`.
+## 🌐 REST API
 
-## Streaming Pipeline
+The API is built with **FastAPI** and supports batch processing, training control, and streaming.
 
-- Implementation: `src/pipelines/streaming.py` (logs frame count, latency/FPS, writes stream.log).
-- REST integration: `src/interfaces/rest.py` uses `run_streaming`.
-- Status: functional placeholder; integrate real frame sampling, temporal smoothing, and output writing for production.
+### Start the Server
 
-## Usage
-
-Start FastAPI (example with uvicorn):
 ```bash
 uvicorn src.interfaces.rest:app --host 0.0.0.0 --port 8000
 ```
 
-POST streaming:
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/face-swap/batch` | Process a batch of images. |
+| `POST` | `/face-swap/stream` | Real-time stream processing. |
+| `GET` | `/reports/{run_id}` | Retrieve metrics and graphs for a run. |
+| `POST` | `/face-swap/train` | Trigger a training run. |
+
+## 🌊 Streaming Pipeline
+
+The streaming pipeline (`src/pipelines/streaming.py`) is optimized for low-latency processing.
+
+### Usage Example
+
 ```bash
 curl -X POST http://localhost:8000/face-swap/stream \
   -H "Content-Type: application/json" \
-  -d '{"config": "configs/face_swap/baseline.yaml", "frames": ["frame1.png", "frame2.png"]}'
+  -d '{
+    "config": "configs/face_swap/baseline.yaml", 
+    "frames": ["path/to/frame1.jpg", "path/to/frame2.jpg"]
+  }'
 ```
 
-## Hardening Steps
+### Features
+- **Latency Tracking**: Logs per-frame processing time.
+- **FPS Monitoring**: Real-time throughput calculation.
+- **Temporal Smoothing**: (Planned) Reduces jitter between frames.
 
-- Add real video frame ingestion (decode, resize, align) and temporal smoothing.
-- Write sample outputs/frames to work_dir and return URLs in REST responses.
-- Add authentication/quotas if exposed beyond internal use.
-- Benchmark streaming FPS/latency on target edge hardware.***
+## 🚧 Development Status
+
+- **Current**: Functional prototype with frame counting and latency logging.
+- **Planned**:
+  - Real-time video protocol (RTSP/WebRTC) support.
+  - Hardware-accelerated decoding/encoding.
+  - Output URL generation for processed streams.
